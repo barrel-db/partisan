@@ -180,7 +180,7 @@ broadcast(Broadcast, Mod) ->
 %% @doc Notifies broadcast server of membership update
 update(LocalState0) ->
     LocalState = partisan_peer_service:decode(LocalState0),
-    % lager:info("Update triggered with: ~p", [LocalState]),
+    % ?INFO("Update triggered with: ~p", [LocalState]),
     gen_server:cast(?SERVER, {update, LocalState}).
 
 %% @doc Returns the broadcast servers view of full cluster membership.
@@ -399,7 +399,7 @@ handle_graft({ok, Message}, MessageId, Mod, Round, Root, From, State) ->
     _ = send({broadcast, MessageId, Message, Mod, Round, Root, myself()}, Mod, From),
     State1;
 handle_graft({error, Reason}, _MessageId, Mod, _Round, _Root, _From, State) ->
-    lager:error("unable to graft message from ~p. reason: ~p", [Mod, Reason]),
+    ?ERROR("unable to graft message from ~p. reason: ~p", [Mod, Reason]),
     State.
 
 neighbors_down(Removed, State=#state{common_eagers=CommonEagers, eager_sets=EagerSets,
@@ -673,7 +673,7 @@ instrument_transmission(Message, Mod) ->
                 Mod:extract_log_type_and_payload(Message)
             catch
                 _:Error ->
-                    lager:info("Couldn't extract log type and payload. Reason ~p", [Error]),
+                    ?INFO("Couldn't extract log type and payload. Reason ~p", [Error]),
                     []
             end,
 

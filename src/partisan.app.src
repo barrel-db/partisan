@@ -2,7 +2,7 @@
              [{description,"Scalable peer service for Lasp"},
               {vsn,"3.0.0"},
               {registered,[]},
-              {applications,[kernel,stdlib,crypto,lager,types,acceptor_pool,
+              {applications,[kernel,stdlib,crypto,types,acceptor_pool,
                              ssl,rand_compat,uuid]},
               {mod,{partisan_app,[]}},
               {modules,[]},

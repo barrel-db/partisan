@@ -77,7 +77,7 @@ init([Fn]) ->
         Fn(LocalState)
     catch
         _:Error ->
-            lager:error("Error with callback: ~p", [Error])
+            ?ERROR("Error with callback: ~p", [Error])
     end,
     {ok, #state{callback=Fn}}.
 
@@ -85,15 +85,15 @@ handle_event({update, LocalState}, State) ->
     (State#state.callback)(LocalState),
     {ok, State};
 handle_event(Event, State) ->
-    lager:info("Unhandled event at module ~p: ~p", [?MODULE, Event]),
+    ?INFO("Unhandled event at module ~p: ~p", [?MODULE, Event]),
     {ok, State}.
 
 handle_call(Request, State) ->
-    lager:warning("Unhandled call messages at module ~p: ~p", [?MODULE, Request]),
+    ?WARNING("Unhandled call messages at module ~p: ~p", [?MODULE, Request]),
     {ok, ok, State}.
 
 handle_info(Info, State) ->
-    lager:warning("Unhandled info messages at module ~p: ~p", [?MODULE, Info]),
+    ?WARNING("Unhandled info messages at module ~p: ~p", [?MODULE, Info]),
     {ok, State}.
 
 terminate(_Reason, _State) ->

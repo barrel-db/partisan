@@ -23,6 +23,8 @@
 
 -behaviour(gen_server).
 
+-include("partisan.hrl").
+
 %% API
 -export([start_link/0]).
 
@@ -50,7 +52,7 @@ start_link() ->
 
 %% @private
 init([]) ->
-    lager:info("Initializing promise backend..."),
+    ?INFO("Initializing promise backend...", []),
     ?MODULE = ets:new(?MODULE, [named_table]),
     {ok, #state{t=?MODULE}}.
 

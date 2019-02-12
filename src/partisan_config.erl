@@ -33,6 +33,10 @@
          get/2]).
 
 init() ->
+    %% configure the logger module from the application config
+    Logger = application:get_env(partisan, logger_module, logger),
+    partisan_config:set('$partisan_logger', Logger),
+
     DefaultPeerService = application:get_env(partisan,
                                              partisan_peer_service_manager,
                                              ?DEFAULT_PEER_SERVICE_MANAGER),
@@ -47,16 +51,16 @@ init() ->
     %% Configure the partisan node name.
     Name = case node() of
         nonode@nohost ->
-            lager:info("Distributed Erlang is not enabled, generating UUID."),
+            ?INFO("Distributed Erlang is not enabled, generating UUID.", []),
             UUIDState = uuid:new(self()),
             {UUID, _UUIDState1} = uuid:get_v1(UUIDState),
-            lager:info("Generated UUID: ~p, converting to string.", [UUID]),
+            ?INFO("Generated UUID: ~p, converting to string.", [UUID]),
             StringUUID = uuid:uuid_to_string(UUID),
             NodeName = list_to_atom(StringUUID ++ "@127.0.0.1"),
-            lager:info("Generated name for node: ~p", [NodeName]),
+            ?INFO("Generated name for node: ~p", [NodeName]),
             NodeName;
         Other ->
-            lager:info("Using node name: ~p", [Other]),
+            ?INFO("Using node name: ~p", [Other]),
             Other
     end,
 
@@ -77,7 +81,7 @@ init() ->
     DefaultPeerPort = random_port(),
 
     %% Configure X-BOT interval.
-    XbotInterval = rand:uniform(?XBOT_RANGE_INTERVAL) + ?XBOT_MIN_INTERVAL, 
+    XbotInterval = rand:uniform(?XBOT_RANGE_INTERVAL) + ?XBOT_MIN_INTERVAL,
 
     [env_or_default(Key, Default) ||
         {Key, Default} <- [{arwl, 5},
@@ -124,7 +128,7 @@ init() ->
 trace(Message, Args) ->
     case partisan_config:get(tracing, ?TRACING) of
         true ->
-            lager:info(Message, Args);
+            ?INFO(Message, Args);
         false ->
             ok
     end.
@@ -184,13 +188,13 @@ get_node_address() ->
     Me = self(),
 
     ResolverFun = fun() ->
-        lager:info("Resolving ~p...", [FQDN]),
+        ?INFO("Resolving ~p...", [FQDN]),
         case inet:getaddr(FQDN, inet) of
             {ok, Address} ->
-                lager:info("Resolved ~p to ~p", [Name, Address]),
+                ?INFO("Resolved ~p to ~p", [Name, Address]),
                 Me ! {ok, Address};
             {error, Error} ->
-                lager:error("Cannot resolve local name ~p, resulting to 127.0.0.1: ~p", [FQDN, Error]),
+                ?ERROR("Cannot resolve local name ~p, resulting to 127.0.0.1: ~p", [FQDN, Error]),
                 Me ! {ok, ?PEER_IP}
         end
     end,
@@ -204,9 +208,9 @@ get_node_address() ->
     %% Wait for response, either answer or exit.
     receive
         {ok, Address} ->
-            lager:info("Resolved ~p to ~p", [FQDN, Address]),
+            ?INFO("Resolved ~p to ~p", [FQDN, Address]),
             Address;
         Error ->
-            lager:error("Error resolving name ~p: ~p", [Error, FQDN]),
+            ?ERROR("Error resolving name ~p: ~p", [Error, FQDN]),
             ?PEER_IP
     end.

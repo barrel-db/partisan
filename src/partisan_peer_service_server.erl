@@ -77,7 +77,7 @@ handle_cast(Req, State) ->
 handle_info({Tag, _RawSocket, Data}, State=#state{socket=Socket}) when ?DATA_MSG(Tag) ->
     case partisan_config:get(tracing, ?TRACING) of
         true ->
-            lager:info("Recevied data from socket: ~p", [decode(Data)]);
+            ?INFO("Recevied data from socket: ~p", [decode(Data)]);
         false ->
             ok
     end,
@@ -92,12 +92,12 @@ handle_info({Tag, _RawSocket, Data}, State=#state{socket=Socket}) when ?DATA_MSG
     ok = partisan_peer_connection:setopts(Socket, [{active, once}]),
     {noreply, State};
 handle_info({Tag, _RawSocket, Reason}, State=#state{socket=Socket}) when ?ERROR_MSG(Tag) ->
-    lager:error("Connection socket ~p errored out, closing", [Socket]),
+    ?ERROR("Connection socket ~p errored out, closing", [Socket]),
     {stop, Reason, State};
 handle_info({Tag, _RawSocket}, State=#state{socket=Socket}) when ?CLOSED_MSG(Tag) ->
     case partisan_config:get(tracing, ?TRACING) of
         true ->
-            lager:info("Connection socket ~p has been remotely closed", [Socket]);
+            ?INFO("Connection socket ~p has been remotely closed", [Socket]);
         false ->
             ok
     end,
@@ -138,11 +138,11 @@ handle_message({hello, Node},
             %% it to bootstrap.
             Manager = partisan_peer_service:manager(),
             {ok, LocalState} = Manager:get_local_state(),
-            % lager:info("got hello reply from ~p, sending local state", [Node]),
+            % ?INFO("got hello reply from ~p, sending local state", [Node]),
             send_message(Socket, {state, Tag, LocalState}),
             ok;
         error ->
-            lager:info("Node could not be connected."),
+            ?INFO("Node could not be connected.", []),
             send_message(Socket, {hello, {error, pang}}),
             ok
     end;
@@ -151,7 +151,7 @@ handle_message(Message, _State) ->
 
     case partisan_config:get(tracing, ?TRACING) of
         true ->
-            lager:info("Received message from peer ~p: ~p", [Peer, Message]);
+            ?INFO("Received message from peer ~p: ~p", [Peer, Message]);
         false ->
             ok
     end,
@@ -161,7 +161,7 @@ handle_message(Message, _State) ->
 
     case partisan_config:get(tracing, ?TRACING) of
         true ->
-            lager:info("Dispatched ~p to manager.", [Message]);
+            ?INFO("Dispatched ~p to manager.", [Message]);
         false ->
             ok
     end,

@@ -23,6 +23,8 @@
 
 -behaviour(gen_server).
 
+-include("partisan.hrl").
+
 %% public api
 
 -export([start_link/2]).
@@ -86,7 +88,7 @@ terminate(_, {Socket, _MRef}) ->
 maybe_update_port_config(PeerIP, 0, Socket) ->
     case inet:sockname(Socket) of
         {ok, {_IPAddress, Port}} ->
-            lager:info("partisan listening on peer ~p, system allocated port ~p",
+            ?INFO("partisan listening on peer ~p, system allocated port ~p",
                        [PeerIP, Port]),
             partisan_config:set(peer_port, Port),
             % search the listen addrs map for the provided ip Address

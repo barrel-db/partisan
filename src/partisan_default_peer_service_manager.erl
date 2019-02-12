@@ -180,8 +180,8 @@ forward_message(Name, Channel, ServerRef, Message, Options) ->
     %% - not labeled for causal delivery
     %% - message does not need acknowledgements
     %%
-    FastForward = not (CausalLabel =/= undefined) andalso 
-                  not ShouldAck andalso 
+    FastForward = not (CausalLabel =/= undefined) andalso
+                  not ShouldAck andalso
                   not DisableFastForward,
 
     %% If attempting to forward to the local node, bypass.
@@ -215,7 +215,7 @@ forward_message(Name, Channel, ServerRef, Message, Options) ->
                             end;
                         false ->
                             gen_server:call(?MODULE, FullMessage, infinity)
-                    end                
+                    end
             end
     end.
 
@@ -228,14 +228,14 @@ receive_message(Peer, {forward_message, ServerRef, {'$partisan_padded', _Padding
 receive_message(_Peer, {forward_message, _ServerRef, {causal, Label, _, _, _, _, _} = Message}) ->
     partisan_causality_backend:receive_message(Label, Message);
 receive_message(Peer, {forward_message, ServerRef, Message} = FullMessage) ->
-    % lager:info("in mesage receive at node ~p for peer ~p", [node(), Peer]),
+    % ?INFO("in mesage receive at node ~p for peer ~p", [node(), Peer]),
 
     case partisan_config:get(disable_fast_receive, true) of
         true ->
-            % lager:info("in mesage receive at node ~p for peer ~p FAST RECEIVE DISABLE", [node(), Peer]),
+            % ?INFO("in mesage receive at node ~p for peer ~p FAST RECEIVE DISABLE", [node(), Peer]),
             gen_server:call(?MODULE, {receive_message, Peer, FullMessage}, infinity);
         false ->
-            % lager:info("in mesage receive at node ~p for peer ~p FAST RECEIVE NOT DISABLE", [node(), Peer]),
+            % ?INFO("in mesage receive at node ~p for peer ~p FAST RECEIVE NOT DISABLE", [node(), Peer]),
             partisan_util:process_forward(ServerRef, Message)
     end;
 receive_message(_Peer, Message) ->
@@ -298,7 +298,7 @@ init([]) ->
                         erlang:unique_integer()}),
 
     case partisan_config:get(binary_padding, false) of
-        true ->    
+        true ->
             %% Use 64-byte binary to force shared heap usage to cut down on copying.
             BinaryPaddingTerm = rand_bits(512),
             partisan_config:set(binary_padding_term, BinaryPaddingTerm);
@@ -361,11 +361,11 @@ handle_call({remove_interposition_fun, Name}, _From, #state{interposition_funs=I
     {reply, ok, State#state{interposition_funs=InterpositionFuns}};
 
 handle_call({update_members, Nodes}, _From, #state{membership=Membership}=State) ->
-    % lager:debug("Updating membership with: ~p", [Nodes]),
+    % ?DEBUG("Updating membership with: ~p", [Nodes]),
 
     %% Get the current membership.
     CurrentMembership = [N || #{name := N} <- sets:to_list(?SET:query(Membership))],
-    % lager:debug("CurrentMembership: ~p", [CurrentMembership]),
+    % ?DEBUG("CurrentMembership: ~p", [CurrentMembership]),
 
     %% need to support Nodes as a list of maps or atoms
     %% TODO: require each node to be a map
@@ -379,7 +379,7 @@ handle_call({update_members, Nodes}, _From, #state{membership=Membership}=State)
     LeavingNodes = lists:filter(fun(N) ->
                                         not lists:member(N, NodesNames)
                                 end, CurrentMembership),
-    % lager:debug("LeavingNodes: ~p", [LeavingNodes]),
+    % ?DEBUG("LeavingNodes: ~p", [LeavingNodes]),
 
     %% Issue leaves.
     State1 = lists:foldl(fun(N, S) ->
@@ -392,7 +392,7 @@ handle_call({update_members, Nodes}, _From, #state{membership=Membership}=State)
                                    (N) when is_atom(N) ->
                                         not lists:member(N, CurrentMembership)
                                 end, Nodes),
-    % lager:debug("JoiningNodes: ~p", [JoiningNodes]),
+    % ?DEBUG("JoiningNodes: ~p", [JoiningNodes]),
 
     %% Issue joins.
     State2=#state{pending=Pending} = lists:foldl(fun(N, S) ->
@@ -443,7 +443,7 @@ handle_call({join, #{name := Name} = Node},
 handle_call({sync_join, #{name := Name} = Node},
             From,
             State0) ->
-    lager:debug("Starting synchronous join to ~p from ~p", [Node, partisan_peer_service_manager:mynode()]),
+    ?DEBUG("Starting synchronous join to ~p from ~p", [Node, partisan_peer_service_manager:mynode()]),
 
     case partisan_peer_service_manager:mynode() of
         Name ->
@@ -459,10 +459,10 @@ handle_call({sync_join, #{name := Name} = Node},
 
 handle_call({send_message, Name, Channel, Message}, _From,
             #state{connections=Connections}=State) ->
-    Result = do_send_message(Name, 
-                             Channel, 
-                             ?DEFAULT_PARTITION_KEY, 
-                             Message, 
+    Result = do_send_message(Name,
+                             Channel,
+                             ?DEFAULT_PARTITION_KEY,
+                             Message,
                              Connections),
     {reply, Result, State};
 
@@ -534,8 +534,8 @@ handle_call({forward_message, Name, Channel, Clock, PartitionKey, ServerRef, Ori
     end;
 
 handle_call({receive_message, Peer, OriginalMessage}, _From, #state{interposition_funs=InterpositionFuns} = State) ->
-    lager:info("Inside the receive interposition, message from ~p at node ~p", [Peer, node()]),
-    lager:info("Count of interposition funs: ~p", [dict:size(InterpositionFuns)]),
+    ?INFO("Inside the receive interposition, message from ~p at node ~p", [Peer, node()]),
+    ?INFO("Count of interposition funs: ~p", [dict:size(InterpositionFuns)]),
 
     %% Determine if message should be allowed to pass.
     FoldFun = fun(_Name, InterpositionFun, M) ->
@@ -543,7 +543,7 @@ handle_call({receive_message, Peer, OriginalMessage}, _From, #state{interpositio
     end,
     Message = dict:fold(FoldFun, OriginalMessage, InterpositionFuns),
 
-    lager:info("Message after interposition is: ~p", [Message]),
+    ?INFO("Message after interposition is: ~p", [Message]),
 
     case Message of
         undefined ->
@@ -565,13 +565,13 @@ handle_call(get_local_state, _From, #state{membership=Membership}=State) ->
     {reply, {ok, Membership}, State};
 
 handle_call(Msg, _From, State) ->
-    lager:warning("Unhandled call messages at module ~p: ~p", [?MODULE, Msg]),
+    ?WARNING("Unhandled call messages at module ~p: ~p", [?MODULE, Msg]),
     {reply, ok, State}.
 
 %% @private
 -spec handle_cast(term(), state_t()) -> {noreply, state_t()}.
 handle_cast(Msg, State) ->
-    lager:warning("Unhandled cast messages at module ~p: ~p", [?MODULE, Msg]),
+    ?WARNING("Unhandled cast messages at module ~p: ~p", [?MODULE, Msg]),
     {noreply, State}.
 
 %% @private
@@ -612,7 +612,7 @@ handle_info(connections, #state{pending=Pending,
     SyncJoins = lists:foldl(fun({Node, FromPid}, Joins) ->
             case fully_connected(Node, Connections) of
                 true ->
-                    lager:debug("Node ~p is now fully connected.", [Node]),
+                    ?DEBUG("Node ~p is now fully connected.", [Node]),
                     gen_server:reply(FromPid, ok),
                     Joins;
                 _ ->
@@ -645,7 +645,7 @@ handle_info({connected, Node, _Tag, RemoteState},
                       membership=Membership0,
                       sync_joins=SyncJoins0,
                       connections=Connections}=State0) ->
-    lager:debug("Node ~p connected!", [Node]),
+    ?DEBUG("Node ~p connected!", [Node]),
 
     State = case lists:member(Node, Pending0) of
         true ->
@@ -699,7 +699,7 @@ handle_info({connected, Node, _Tag, RemoteState},
     {noreply, State#state{sync_joins=SyncJoins}};
 
 handle_info(Msg, State) ->
-    lager:warning("Unhandled info messages at module ~p: ~p", [?MODULE, Msg]),
+    ?WARNING("Unhandled info messages at module ~p: ~p", [?MODULE, Msg]),
     {noreply, State}.
 
 %% @private
@@ -848,7 +848,7 @@ handle_message({receive_state, #{name := From}, PeerMembership},
                                                         Membership,
                                                         Connections0),
 
-                    lager:debug("Received updated membership state: ~p from ~p", [Members, From]),
+                    ?DEBUG("Received updated membership state: ~p from ~p", [Members, From]),
 
                     %% Gossip.
                     do_gossip(Merged, Connections),
@@ -856,7 +856,7 @@ handle_message({receive_state, #{name := From}, PeerMembership},
                     {reply, ok, State#state{membership=Merged,
                                             connections=Connections}};
                 false ->
-                    lager:debug("Node ~p is no longer part of the cluster, setting empty membership.", [partisan_peer_service_manager:mynode()]),
+                    ?DEBUG("Node ~p is no longer part of the cluster, setting empty membership.", [partisan_peer_service_manager:mynode()]),
 
                     %% Reset membership, normal terminate on the gen_server:
                     %% this will close all connections, restart the gen_server,
@@ -921,7 +921,7 @@ handle_message({forward_message, ServerRef, Message}, State) ->
 handle_message({connect, ConnectionPid, #{name := Name} = Node}, State0) ->
     MyNode = partisan_peer_service_manager:mynode(),
 
-    lager:info("Received connection request at node ~p for node ~p from remote pid: ~p", [MyNode, Name, ConnectionPid]),
+    ?INFO("Received connection request at node ~p for node ~p from remote pid: ~p", [MyNode, Name, ConnectionPid]),
 
     case MyNode of
         Name ->
@@ -977,7 +977,7 @@ do_gossip(Recipients, Membership, Connections) ->
                 AllPeers ->
                     Members = [N || #{name := N} <- members(Membership)],
 
-                    lager:debug("Sending state with updated membership: ~p", [Members]),
+                    ?DEBUG("Sending state with updated membership: ~p", [Members]),
 
                     lists:foreach(fun(Peer) ->
                                 do_send_message(Peer,
@@ -1008,14 +1008,14 @@ do_send_message(Node, Channel, PartitionKey, Message, Connections) ->
     %% Find a connection for the remote node, if we have one.
     case partisan_peer_service_connections:find(Node, Connections) of
         {ok, []} ->
-            lager:error("Node ~p was connected, but is now disconnected!", [Node]),
+            ?ERROR("Node ~p was connected, but is now disconnected!", [Node]),
             %% Node was connected but is now disconnected.
             {error, disconnected};
         {ok, Entries} ->
             Pid = partisan_util:dispatch_pid(PartitionKey, Channel, Entries),
             gen_server:cast(Pid, {send_message, Message});
         {error, not_found} ->
-            lager:error("Node ~p is not yet connected during send!", [Node]),
+            ?ERROR("Node ~p is not yet connected during send!", [Node]),
             %% Node has not been connected yet.
             {error, not_yet_connected}
     end.
@@ -1048,7 +1048,7 @@ down(Name, #state{down_functions=DownFunctions}) ->
 internal_leave(Node, #state{actor=Actor,
                             connections=Connections,
                             membership=Membership0}=State) ->
-    lager:debug("Leaving node ~p at node ~p", [Node, partisan_peer_service_manager:mynode()]),
+    ?DEBUG("Leaving node ~p at node ~p", [Node, partisan_peer_service_manager:mynode()]),
 
     %% Node may exist in the membership on multiple ports, so we need to
     %% remove all.

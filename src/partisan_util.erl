@@ -97,13 +97,13 @@ maybe_connect_listen_addr(Node, ListenAddr, Connections0) ->
     Connections = case partisan_peer_service_connections:find(Node, Connections0) of
         %% Found disconnected.
         {ok, []} ->
-            lager:debug("Node ~p is not connected; initiating.", [Node]),
+            ?DEBUG("Node ~p is not connected; initiating.", [Node]),
             case connect(Node, ListenAddr, ?DEFAULT_CHANNEL) of
                 {ok, Pid} ->
-                    lager:debug("Node ~p connected, pid: ~p", [Node, Pid]),
+                   ?DEBUG("Node ~p connected, pid: ~p", [Node, Pid]),
                     partisan_peer_service_connections:store(Node, {ListenAddr, ?DEFAULT_CHANNEL, Pid}, Connections0);
                 Error ->
-                    lager:debug("Node ~p failed connection: ~p.", [Node, Error]),
+                    ?DEBUG("Node ~p failed connection: ~p.", [Node, Error]),
                     Connections0
             end;
         %% Found and connected.
@@ -115,13 +115,13 @@ maybe_connect_listen_addr(Node, ListenAddr, Connections0) ->
         {error, not_found} ->
             case connect(Node, ListenAddr, ?DEFAULT_CHANNEL) of
                 {ok, Pid} ->
-                    lager:debug("Node ~p connected, pid: ~p", [Node, Pid]),
+                    ?DEBUG("Node ~p connected, pid: ~p", [Node, Pid]),
                     partisan_peer_service_connections:store(Node, {ListenAddr, ?DEFAULT_CHANNEL, Pid}, Connections0);
                 {error, normal} ->
-                    lager:debug("Node ~p isn't online just yet.", [Node]),
+                    ?DEBUG("Node ~p isn't online just yet.", [Node]),
                     Connections0;
                 Error ->
-                    lager:debug("Node ~p failed connection: ~p.", [Node, Error]),
+                    ?DEBUG("Node ~p failed connection: ~p.", [Node, Error]),
                     Connections0
             end
     end,
@@ -213,15 +213,15 @@ maybe_initiate_parallel_connections(Connections0, Channel, Node, ListenAddr, Par
                     end, Entries),
     case length(FilteredEntries) < Parallelism andalso Parallelism =/= undefined of
         true ->
-            lager:debug("(~p of ~p connected for channel ~p) Connecting node ~p.",
-                        [length(FilteredEntries), Parallelism, Channel, Node]),
+            ?DEBUG("(~p of ~p connected for channel ~p) Connecting node ~p.",
+                   [length(FilteredEntries), Parallelism, Channel, Node]),
 
             case connect(Node, ListenAddr, Channel) of
                 {ok, Pid} ->
-                    lager:debug("Node ~p connected, pid: ~p", [Node, Pid]),
+                    ?DEBUG("Node ~p connected, pid: ~p", [Node, Pid]),
                     partisan_peer_service_connections:store(Node, {ListenAddr, Channel, Pid}, Connections0);
                 Error ->
-                    lager:error("Node failed connect with ~p", [Error]),
+                    ?ERROR("Node failed connect with ~p", [Error]),
                     Connections0
             end;
         false ->
@@ -230,7 +230,7 @@ maybe_initiate_parallel_connections(Connections0, Channel, Node, ListenAddr, Par
 
 term_to_iolist(Term) ->
     [131, term_to_iolist_(Term)].
-        
+
 term_to_iolist_([]) ->
     106;
 term_to_iolist_({}) ->
@@ -316,18 +316,18 @@ process_forward(ServerRef, Message) ->
                                     true ->
                                         ok;
                                     false ->
-                                        lager:info("Process ~p is NOT ALIVE.", [ServerRef])
+                                        ?INFO("Process ~p is NOT ALIVE.", [ServerRef])
                                 end;
                             false ->
                                 case whereis(ServerRef) of
                                     undefined ->
-                                        lager:info("Process ~p is NOT ALIVE.", [ServerRef]);
+                                        ?INFO("Process ~p is NOT ALIVE.", [ServerRef]);
                                     Pid ->
                                         case is_process_alive(Pid) of
                                             true ->
                                                 ok;
                                             false ->
-                                                lager:info("Process ~p is NOT ALIVE.", [ServerRef])
+                                                ?INFO("Process ~p is NOT ALIVE.", [ServerRef])
                                         end
                                 end
                         end;
@@ -337,5 +337,5 @@ process_forward(ServerRef, Message) ->
         end
     catch
         _:Error ->
-            lager:info("Error forwarding message ~p to process ~p: ~p", [Message, ServerRef, Error])
+            ?INFO("Error forwarding message ~p to process ~p: ~p", [Message, ServerRef, Error])
     end.

@@ -54,18 +54,18 @@ init([]) ->
     CausalLabels = partisan_config:get(causal_labels, []),
 
     CausalBackendFun = fun(Label) ->
-        {partisan_causality_backend, 
-         {partisan_causality_backend, start_link, [Label]}, 
+        {partisan_causality_backend,
+         {partisan_causality_backend, start_link, [Label]},
           permanent, 5000, worker, [partisan_causality_backend]}
     end,
 
     CausalBackends = lists:map(CausalBackendFun, CausalLabels),
 
-    lager:info("Partisan listening on ~p:~p listen_addrs: ~p", 
-               [partisan_config:get(peer_ip), partisan_config:get(peer_port), partisan_config:get(listen_addrs)]),
+    ?INFO("Partisan listening on ~p:~p listen_addrs: ~p",
+          [partisan_config:get(peer_ip), partisan_config:get(peer_port), partisan_config:get(listen_addrs)]),
 
     %% Open connection pool.
-    PoolSup = {partisan_pool_sup, 
+    PoolSup = {partisan_pool_sup,
                {partisan_pool_sup, start_link, []},
                 permanent, 20000, supervisor, [partisan_pool_sup]},
 
